@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="color-scheme" content="light">
-<title>Puntos de Catan</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;800&family=Figtree:wght@400;500;600;700&display=swap">
+<title>Catan Points</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;800&family=Figtree:wght@400;500;600;700&family=Cinzel+Decorative:wght@700;900&display=swap">
 <style>
 /* Layout: la ilustración ocupa toda la pantalla, fija detrás del contenido. Encima van paneles de vidrio
    blanco translúcido (dejan ver un poco el fondo) y botones con la paleta del atardecer: dorado y naranja para
@@ -68,7 +68,13 @@ button{cursor:pointer}
 
 .top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px}
 .eyebrow{margin:0;font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.95);text-shadow:0 1px 8px rgba(0,0,0,.55)}
-h1{margin:0;font:800 48px/1 var(--font-display);letter-spacing:-.02em;color:#fff;text-shadow:0 2px 16px rgba(0,0,0,.5)}
+h1{
+  margin:0;
+  font:900 clamp(30px,9.5vw,52px)/1.05 'Cinzel Decorative',var(--font-display),Georgia,serif;
+  letter-spacing:.03em;
+  color:#FFF0C4;
+  text-shadow:0 1px 0 #9A5A17,0 2px 0 #86490F,0 3px 0 #713B08,0 10px 22px rgba(0,0,0,.55);
+}
 h2{margin:0;font:700 20px/1.2 var(--font-display);text-wrap:balance}
 .status{align-self:flex-start;margin:-6px 0 0;padding:4px 12px;border-radius:999px;background:rgba(255,255,255,.78);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);font-size:13px;color:var(--muted);box-shadow:0 2px 8px rgba(15,25,35,.18)}
 .status:empty{display:none}
@@ -201,22 +207,32 @@ h2{margin:0;font:700 20px/1.2 var(--font-display);text-wrap:balance}
 .step:disabled{opacity:.4;cursor:default;box-shadow:none}
 
 @media (max-width:420px){
-  h1{font-size:42px}
   .rk-pts{font-size:24px}
 }
 @media (prefers-reduced-motion:no-preference){
   .btn,.step{transition:transform .08s,box-shadow .12s}
 }
 
+/* Etiquetas y estrella junto al nombre */
+.who{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;min-width:0}
+.who .rk-name{max-width:100%}
+.star{width:22px;height:22px;flex:none;fill:#F5B93A;stroke:#B7791F;stroke-width:1.4;stroke-linejoin:round;filter:drop-shadow(0 1px 1px rgba(0,0,0,.25))}
+.tag{display:inline-block;padding:2px 10px;border-radius:999px;border:1px solid var(--line);background:rgba(18,38,43,.1);color:var(--fg);font-size:12px;font-weight:700;line-height:1.5}
+.tag.gold{background:var(--gold-bg);border-color:var(--gold);color:#6B430A}
+
+/* Ventana de confirmación */
+.modal{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:16px;background:rgba(10,20,30,.55);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
+.modal-box{width:min(100%,420px);max-height:100%;overflow:auto;background:rgba(255,255,255,.94);border:1px solid rgba(255,255,255,.8);border-radius:18px;box-shadow:var(--shadow);padding:20px;display:flex;flex-direction:column;gap:14px}
+.modal-box .actions{justify-content:flex-end}
+.btn.danger{background:linear-gradient(#DE5D45,#A82F1B);border-color:#7E2213;color:#fff;text-shadow:0 1px 0 rgba(0,0,0,.3);box-shadow:0 2px 0 #7E2213,0 10px 20px rgba(126,34,19,.4)}
+.btn.danger:focus-visible{outline-color:#fff}
+
 </style>
 </head>
 <body>
 <main class="wrap">
   <header class="top">
-    <div>
-      <p class="eyebrow">Puntos acumulados</p>
-      <h1>Catan</h1>
-    </div>
+    <h1>Catan Points</h1>
     <button id="newGameBtn" class="btn primary" type="button">Nueva partida</button>
   </header>
   <p id="status" class="status" role="status" aria-live="polite"></p>
@@ -228,7 +244,6 @@ h2{margin:0;font:700 20px/1.2 var(--font-display);text-wrap:balance}
       </div>
       <p id="rankEmpty" class="empty">Todavía no hay jugadores. Tocá «Nueva partida», elegí quiénes juegan hoy y todos arrancan de cero.</p>
       <ol id="rank" class="rank"></ol>
-      <p id="scheme" class="scheme"></p>
     </section>
 
     <section id="playersPanel" class="panel" aria-labelledby="plH" hidden>
@@ -245,11 +260,28 @@ h2{margin:0;font:700 20px/1.2 var(--font-display);text-wrap:balance}
       <ol id="hist" class="hist"></ol>
     </section>
 
+    <section class="panel" aria-labelledby="schemeH">
+      <h2 id="schemeH">Cómo se puntúa</h2>
+      <p class="hint">Cada partida suma o resta puntos según el puesto y la cantidad de jugadores.</p>
+      <p id="scheme" class="scheme"></p>
+    </section>
+
 
   </div>
 
   <section id="wiz" class="panel" hidden></section>
 </main>
+
+<div id="modal" class="modal" hidden>
+  <div class="modal-box" role="alertdialog" aria-modal="true" aria-labelledby="mTitle" aria-describedby="mBody">
+    <h2 id="mTitle"></h2>
+    <p id="mBody" class="hint"></p>
+    <div class="actions">
+      <button id="mCancel" class="btn" type="button">Cancelar</button>
+      <button id="mOk" class="btn danger" type="button">Borrar</button>
+    </div>
+  </div>
+</div>
 
 <script type="module">
 import {initializeApp} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
@@ -491,6 +523,55 @@ const FIREBASE_CONFIG = {
     window.scrollTo(0,0);
   }
 
+  /* ---------- Ventana de confirmación y adornos ---------- */
+  var modalYes=null,modalBack=null;
+  function askConfirm(title,body,okLabel,onYes){
+    modalYes=onYes;
+    modalBack=document.activeElement;
+    $('mTitle').textContent=title;
+    $('mBody').textContent=body;
+    $('mOk').textContent=okLabel;
+    $('modal').hidden=false;
+    $('mCancel').focus();
+  }
+  function closeModal(){
+    $('modal').hidden=true;
+    modalYes=null;
+    if(modalBack&&document.contains(modalBack)&&modalBack.focus)modalBack.focus();
+    modalBack=null;
+  }
+  $('mCancel').addEventListener('click',closeModal);
+  $('mOk').addEventListener('click',function(){
+    var f=modalYes;
+    closeModal();
+    if(f)f();
+  });
+  $('modal').addEventListener('click',function(e){if(e.target===$('modal'))closeModal()});
+  document.addEventListener('keydown',function(e){
+    if($('modal').hidden)return;
+    if(e.key==='Escape'){closeModal();return}
+    if(e.key==='Tab'){
+      var a=$('mCancel'),b=$('mOk'),cur=document.activeElement;
+      if(e.shiftKey&&cur===a){e.preventDefault();b.focus()}
+      else if(!e.shiftKey&&cur===b){e.preventDefault();a.focus()}
+      else if(cur!==a&&cur!==b){e.preventDefault();a.focus()}
+    }
+  });
+  function describeGame(g){
+    return fmtDate(g.ts)+' · '+g.results.map(function(r){return r.place+'.º '+nameOf(r.pid,r.name)+' '+fmt(r.pts)}).join(', ');
+  }
+  function starIcon(){
+    var ns='http://www.w3.org/2000/svg';
+    var svg=document.createElementNS(ns,'svg');
+    svg.setAttribute('viewBox','0 0 24 24');
+    svg.setAttribute('class','star');
+    svg.setAttribute('aria-hidden','true');
+    var p=document.createElementNS(ns,'path');
+    p.setAttribute('d','M12 2.5l2.94 5.96 6.58.96-4.76 4.64 1.12 6.55L12 17.52 6.12 20.61l1.12-6.55L2.48 9.42l6.58-.96L12 2.5z');
+    svg.appendChild(p);
+    return svg;
+  }
+
   /* ---------- Pantalla principal ---------- */
   function renderRanking(){
     var st=stats();
@@ -502,7 +583,11 @@ const FIREBASE_CONFIG = {
       var w=Math.abs(s.pts)/maxAbs*50;
       return h('li',{class:'rk'},
         h('span',{class:'pos'+(s.pos===1?' first':''),text:s.pos?String(s.pos):'–'}),
-        h('span',{class:'rk-name',text:s.name}),
+        h('span',{class:'who'},
+          h('span',{class:'rk-name',text:s.name}),
+          s.pos===1?starIcon():null,
+          s.pos===1?h('span',{class:'tag gold',text:'el mejor'}):(s.pos===2?h('span',{class:'tag',text:'va queriendo, pero casi'}):null)
+        ),
         h('span',{class:'rk-pts '+cls(s.pts),text:fmt(s.pts)}),
         h('div',{class:'bar','aria-hidden':'true'},s.pts!==0?h('span',{class:'fill '+cls(s.pts),style:'width:'+w+'%'}):null),
         h('span',{class:'rk-meta',text:s.g?(plural(s.g,'partida','partidas')+' · '+plural(s.w,'victoria','victorias')):'Sin partidas todavía'})
@@ -514,11 +599,12 @@ const FIREBASE_CONFIG = {
     $('histEmpty').hidden=games.length>0;
     var list=$('hist');
     list.replaceChildren.apply(list,games.map(function(g){
-      var del=h('button',{class:'linkbtn del',type:'button'});
-      armButton(del,'Borrar','¿Borrar?',function(){
-        removeGame(g.id);
-        renderAll();
-      });
+      var del=h('button',{class:'linkbtn del',type:'button',text:'Borrar',onclick:function(){
+        askConfirm('¿Borrar esta partida?',describeGame(g)+'. Se descuentan sus puntos de la tabla y no se puede deshacer.','Borrar',function(){
+          removeGame(g.id);
+          renderAll();
+        });
+      }});
       return h('li',{},
         h('div',{class:'when',text:fmtDate(g.ts)}),
         del,
@@ -544,11 +630,13 @@ const FIREBASE_CONFIG = {
       }});
       var li=h('li',{},input,h('small',{text:plural(n,'partida','partidas')}));
       if(n===0){
-        var del=h('button',{class:'linkbtn del',type:'button'});
-        armButton(del,'Quitar','¿Seguro?',function(){
-          removePlayer(p.id);
-          renderAll();
-        });
+        var del=h('button',{class:'linkbtn del',type:'button',text:'Quitar',onclick:function(){
+          var nm=nameOf(p.id);
+          askConfirm('¿Quitar a '+nm+'?','Se saca de la lista de jugadores. Como no jugó ninguna partida, la tabla no cambia.','Quitar',function(){
+            removePlayer(p.id);
+            renderAll();
+          });
+        }});
         li.append(del);
       }
       return li;
