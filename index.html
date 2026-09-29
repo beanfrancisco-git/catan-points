@@ -227,6 +227,8 @@ h2{margin:0;font:700 20px/1.2 var(--font-display);text-wrap:balance}
 .btn.danger{background:linear-gradient(#DE5D45,#A82F1B);border-color:#7E2213;color:#fff;text-shadow:0 1px 0 rgba(0,0,0,.3);box-shadow:0 2px 0 #7E2213,0 10px 20px rgba(126,34,19,.4)}
 .btn.danger:focus-visible{outline-color:#fff}
 
+.tag{max-width:100%}
+
 </style>
 </head>
 <body>
@@ -431,7 +433,7 @@ const FIREBASE_CONFIG = {
 
   /* ---------- Guardado ---------- */
   var MESSAGES={
-    ready:'Los cambios se guardan solos y se ven en todos los celulares de la mesa.',
+    ready:'',
     saving:'Guardando…',
     saved:'Guardado.',
     local:'Firebase no está configurado: se guarda solo en este celular.',
@@ -572,6 +574,27 @@ const FIREBASE_CONFIG = {
     return svg;
   }
 
+  /* ---------- Etiquetas por puesto (se elige una al azar y se mantiene mientras la página está abierta) ---------- */
+  var TAGS={
+    1:['El mejor','Imparable','Dueño de Catán','Dando cátedra','Simplemente superior','El patrón','El jefe'],
+    2:['Los dados no ayudaron','Va queriendo, pero casi','Estuvo ahí','Falta poquito','Casi, de a poco...','Faltó ladrillo, claramente'],
+    3:['Habrá que mejorar…','Se podía negociar mejor','A revisar la estrategia','Faltó una ciudad','Casi, casi…','Mucha paja','Faltó piedra, claramente'],
+    4:['Habrá que usar mejor los recursos, che…','Mucho trigo, poca gloria','No era por ahí','Ese 7 dolió','Demasiada oveja','Demasiada paja…','Es lo que hay','Mejor no mirar la tabla'],
+    5:['Se complicó la partida','Faltó paja, claramente','Mucho camino para tan poco','Los recursos brillaron por su ausencia','Tocó remar','¿Juega?','Demasiada paja…','Es lo que hay','Mejor no mirar la tabla'],
+    6:['¿Juega?','Demasiada paja…','Es lo que hay','Mejor no mirar la tabla']
+  };
+  var tagCache={};
+  function pickTag(id,pos,used){
+    var b=Math.min(pos,6),list=TAGS[b],key=id+'|'+b,c=tagCache[key];
+    if(c&&!used[c]&&list.indexOf(c)>=0){used[c]=true;return c}
+    var free=list.filter(function(t){return !used[t]});
+    if(!free.length)free=list;
+    c=free[Math.floor(Math.random()*free.length)];
+    tagCache[key]=c;
+    used[c]=true;
+    return c;
+  }
+
   /* ---------- Pantalla principal ---------- */
   function renderRanking(){
     var st=stats();
@@ -579,6 +602,9 @@ const FIREBASE_CONFIG = {
     var maxAbs=3;
     st.forEach(function(s){maxAbs=Math.max(maxAbs,Math.abs(s.pts))});
     var box=$('rank');
+    var used={};
+    var tagOf={};
+    st.slice().reverse().forEach(function(s){if(s.pos)tagOf[s.id]=pickTag(s.id,s.pos,used)});
     box.replaceChildren.apply(box,st.map(function(s){
       var w=Math.abs(s.pts)/maxAbs*50;
       return h('li',{class:'rk'},
@@ -586,7 +612,7 @@ const FIREBASE_CONFIG = {
         h('span',{class:'who'},
           h('span',{class:'rk-name',text:s.name}),
           s.pos===1?starIcon():null,
-          s.pos===1?h('span',{class:'tag gold',text:'el mejor'}):(s.pos===2?h('span',{class:'tag',text:'va queriendo, pero casi'}):null)
+          s.pos?h('span',{class:'tag'+(s.pos===1?' gold':''),text:tagOf[s.id]}):null
         ),
         h('span',{class:'rk-pts '+cls(s.pts),text:fmt(s.pts)}),
         h('div',{class:'bar','aria-hidden':'true'},s.pts!==0?h('span',{class:'fill '+cls(s.pts),style:'width:'+w+'%'}):null),
