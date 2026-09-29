@@ -223,7 +223,8 @@ h2{margin:0;font:700 20px/1.2 var(--font-display);text-wrap:balance}
 /* Ventana de confirmación */
 .modal{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:16px;background:rgba(10,20,30,.55);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
 .modal-box{width:min(100%,420px);max-height:100%;overflow:auto;background:rgba(255,255,255,.94);border:1px solid rgba(255,255,255,.8);border-radius:18px;box-shadow:var(--shadow);padding:20px;display:flex;flex-direction:column;gap:14px}
-.modal-box .actions{justify-content:flex-end}
+.modal-box .actions{justify-content:stretch}
+.modal-box .actions .btn{flex:1 1 140px}
 .btn.danger{background:linear-gradient(#DE5D45,#A82F1B);border-color:#7E2213;color:#fff;text-shadow:0 1px 0 rgba(0,0,0,.3);box-shadow:0 2px 0 #7E2213,0 10px 20px rgba(126,34,19,.4)}
 .btn.danger:focus-visible{outline-color:#fff}
 
@@ -272,7 +273,7 @@ h2{margin:0;font:700 20px/1.2 var(--font-display);text-wrap:balance}
     <section id="playersPanel" class="panel" aria-labelledby="plH" hidden>
       <div class="panel-head">
         <h2 id="plH">Jugadores</h2>
-        <p class="hint">Tocá un nombre para editarlo: se cambia también en la tabla y en el historial. Solo se puede quitar a quien no jugó ninguna partida.</p>
+        <p class="hint">Tocá un nombre para editarlo: se cambia también en la tabla y en el historial. Con «Quitar» podés sacar a un jugador de la lista.</p>
       </div>
       <ul id="plist" class="plist"></ul>
     </section>
@@ -309,6 +310,7 @@ h2{margin:0;font:700 20px/1.2 var(--font-display);text-wrap:balance}
     <p id="mBody" class="hint"></p>
     <div class="actions">
       <button id="mCancel" class="btn" type="button">Cancelar</button>
+      <button id="mAlt" class="btn" type="button" hidden></button>
       <button id="mOk" class="btn danger" type="button">Borrar</button>
     </div>
   </div>
@@ -554,19 +556,24 @@ const FIREBASE_CONFIG = {
   }
 
   /* ---------- Ventana de confirmación y adornos ---------- */
-  var modalYes=null,modalBack=null;
-  function askConfirm(title,body,okLabel,onYes){
+  var modalYes=null,modalAlt=null,modalBack=null;
+  /* alt (opcional): {label, fn} agrega un botón intermedio con otra opción menos drástica */
+  function askConfirm(title,body,okLabel,onYes,alt){
     modalYes=onYes;
+    modalAlt=alt?alt.fn:null;
     modalBack=document.activeElement;
     $('mTitle').textContent=title;
     $('mBody').textContent=body;
     $('mOk').textContent=okLabel;
+    $('mAlt').hidden=!alt;
+    if(alt)$('mAlt').textContent=alt.label;
     $('modal').hidden=false;
     $('mCancel').focus();
   }
   function closeModal(){
     $('modal').hidden=true;
     modalYes=null;
+    modalAlt=null;
     if(modalBack&&document.contains(modalBack)&&modalBack.focus)modalBack.focus();
     modalBack=null;
   }
@@ -576,15 +583,21 @@ const FIREBASE_CONFIG = {
     closeModal();
     if(f)f();
   });
+  $('mAlt').addEventListener('click',function(){
+    var f=modalAlt;
+    closeModal();
+    if(f)f();
+  });
   $('modal').addEventListener('click',function(e){if(e.target===$('modal'))closeModal()});
   document.addEventListener('keydown',function(e){
     if($('modal').hidden)return;
     if(e.key==='Escape'){closeModal();return}
     if(e.key==='Tab'){
-      var a=$('mCancel'),b=$('mOk'),cur=document.activeElement;
-      if(e.shiftKey&&cur===a){e.preventDefault();b.focus()}
-      else if(!e.shiftKey&&cur===b){e.preventDefault();a.focus()}
-      else if(cur!==a&&cur!==b){e.preventDefault();a.focus()}
+      var btns=[$('mCancel'),$('mAlt'),$('mOk')].filter(function(b){return !b.hidden});
+      var first=btns[0],last=btns[btns.length-1],cur=document.activeElement;
+      if(e.shiftKey&&cur===first){e.preventDefault();last.focus()}
+      else if(!e.shiftKey&&cur===last){e.preventDefault();first.focus()}
+      else if(btns.indexOf(cur)<0){e.preventDefault();first.focus()}
     }
   });
   function describeGame(g){
@@ -669,6 +682,32 @@ const FIREBASE_CONFIG = {
     }));
   }
 
+  function askRemovePlayer(p){
+    var nm=nameOf(p.id);
+    var mine=games.filter(function(g){return g.results.some(function(r){return r.pid===p.id})});
+    if(!mine.length){
+      askConfirm('¿Quitar a '+nm+'?','Se saca de la lista de jugadores. Como no jugó ninguna partida, la tabla no cambia.','Quitar',function(){
+        removePlayer(p.id);
+        renderAll();
+      });
+      return;
+    }
+    askConfirm(
+      '¿Quitar a '+nm+'?',
+      nm+' jugó '+plural(mine.length,'partida','partidas')+'. «Solo de la lista» deja de mostrarlo para elegir, pero sus puntos y partidas quedan en la tabla y el historial. «Borrar todo» elimina al jugador y esas partidas: cambia los puntos de quienes jugaron con él y no se puede deshacer.',
+      'Borrar todo',
+      function(){
+        mine.forEach(function(g){removeGame(g.id)});
+        removePlayer(p.id);
+        renderAll();
+      },
+      {label:'Solo de la lista',fn:function(){
+        removePlayer(p.id);
+        renderAll();
+      }}
+    );
+  }
+
   function renderPlayers(){
     var list=$('plist');
     if(list.contains(document.activeElement)&&document.activeElement.tagName==='INPUT')return;
@@ -683,16 +722,7 @@ const FIREBASE_CONFIG = {
         saveMember(cur);
       }});
       var li=h('li',{},input,h('small',{text:plural(n,'partida','partidas')}));
-      if(n===0){
-        var del=h('button',{class:'linkbtn del',type:'button',text:'Quitar',onclick:function(){
-          var nm=nameOf(p.id);
-          askConfirm('¿Quitar a '+nm+'?','Se saca de la lista de jugadores. Como no jugó ninguna partida, la tabla no cambia.','Quitar',function(){
-            removePlayer(p.id);
-            renderAll();
-          });
-        }});
-        li.append(del);
-      }
+      li.append(h('button',{class:'linkbtn del',type:'button',text:'Quitar','aria-label':'Quitar a '+nameOf(p.id),onclick:function(){askRemovePlayer(p)}}));
       return li;
     }));
   }
