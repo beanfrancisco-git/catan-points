@@ -292,7 +292,14 @@ h2{margin:0;font:700 20px/1.2 var(--font-display);text-wrap:balance}
 @media (prefers-reduced-motion:no-preference){
   #timer.is-over .tm-clock{animation:tmblink 1s ease-in-out infinite}
   @keyframes tmblink{50%{opacity:.4}}
+  @keyframes tmredpanel{0%,100%{background:rgba(255,216,209,.78);box-shadow:0 8px 24px rgba(15,25,35,.22)}50%{background:rgba(235,64,52,.62);box-shadow:0 0 0 3px rgba(214,48,38,.9),0 8px 24px rgba(15,25,35,.22)}}
+  @keyframes tmredcard{0%,100%{background:rgba(255,216,209,.8)}50%{background:rgba(235,64,52,.7)}}
+  #timer.is-blink{animation:tmredpanel .9s ease-in-out infinite}
+  .tm-trade.blink{animation:tmredcard .7s ease-in-out infinite}
 }
+#timer.is-blink{background:rgba(255,216,209,.78)}
+.tm-trade.blink{border-color:var(--danger);background:rgba(255,216,209,.8)}
+.tm-trade.blink .tm-tclock{color:var(--danger)}
 
 
 .top{position:relative;padding-right:64px}
@@ -979,8 +986,8 @@ const FIREBASE_CONFIG = {
   var TM_CFG_KEY='catan-timer-config-v1',TM_RUN_KEY='catan-timer-run-v1';
   var TM_DEFAULT={players:4,sound:true,levels:[
     {name:'Arranque',from:1,turn:150,trade:60},
-    {name:'Desarrollo',from:4,turn:120,trade:45},
-    {name:'Recta final',from:9,turn:90,trade:30}
+    {name:'Desarrollo',from:5,turn:120,trade:50},
+    {name:'Recta final',from:10,turn:90,trade:40}
   ]};
   var tm={cfg:null,run:null,timer:0,last:null,tlast:null,audio:null,wake:null,upd:[]};
 
@@ -1173,6 +1180,7 @@ const FIREBASE_CONFIG = {
     panel.classList.toggle('is-warn',state==='warn');
     panel.classList.toggle('is-danger',state==='danger');
     panel.classList.toggle('is-over',state==='over');
+    panel.classList.toggle('is-blink',!over&&!r.paused&&sec<=20);
     $('tmClock').textContent=over?'0:00':mmss(sec);
     $('tmFill').style.width=(over?0:clamp(leftMs/(total*1000)*100,0,100))+'%';
     $('tmLevel').textContent='Nivel '+(c.lv+1)+' · '+c.level.name;
@@ -1185,6 +1193,7 @@ const FIREBASE_CONFIG = {
     var justEnded=!tOn&&r.tradeOver&&now-r.tradeOver<4000;
     $('tmTrade').classList.toggle('on',tOn);
     $('tmTrade').classList.toggle('low',tOn&&tl<=10000);
+    $('tmTrade').classList.toggle('blink',tOn&&!r.paused&&tl<=15000&&tl>0);
     $('tmTClock').textContent=tOn?mmss(Math.ceil(Math.max(tl,0)/1000)):mmss(tTotal);
     $('tmTFill').style.width=(tOn?clamp(tl/(tTotal*1000)*100,0,100):100)+'%';
     $('tmTLabel').textContent=tOn?'Intercambio en curso':(justEnded?'Intercambio terminado':'Tiempo de intercambio');
@@ -1216,7 +1225,7 @@ const FIREBASE_CONFIG = {
     persistRun();
     wake(false);
     $('timerBtnTime').hidden=true;$('timerBtn').classList.remove('on');
-    $('timer').classList.remove('is-warn','is-danger','is-over');
+    $('timer').classList.remove('is-warn','is-danger','is-over','is-blink');
   }
   function startRun(){
     audio();
