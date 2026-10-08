@@ -292,10 +292,10 @@ h2{margin:0;font:700 20px/1.2 var(--font-display);text-wrap:balance}
 @media (prefers-reduced-motion:no-preference){
   #timer.is-over .tm-clock{animation:tmblink 1s ease-in-out infinite}
   @keyframes tmblink{50%{opacity:.4}}
-  @keyframes tmredpanel{0%,100%{background:rgba(255,216,209,.78);box-shadow:0 8px 24px rgba(15,25,35,.22)}50%{background:rgba(235,64,52,.62);box-shadow:0 0 0 3px rgba(214,48,38,.9),0 8px 24px rgba(15,25,35,.22)}}
-  @keyframes tmredcard{0%,100%{background:rgba(255,216,209,.8)}50%{background:rgba(235,64,52,.7)}}
-  #timer.is-blink{animation:tmredpanel .9s ease-in-out infinite}
-  .tm-trade.blink{animation:tmredcard .7s ease-in-out infinite}
+  @keyframes tmredpanel{0%,100%{background:rgba(255,230,225,.72)}50%{background:rgba(244,150,140,.6)}}
+  @keyframes tmredcard{0%,100%{background:rgba(255,230,225,.8)}50%{background:rgba(244,150,140,.65)}}
+  #timer.is-blink{animation:tmredpanel 2s ease-in-out infinite}
+  .tm-trade.blink{animation:tmredcard 2s ease-in-out infinite}
 }
 #timer.is-blink{background:rgba(255,216,209,.78)}
 .tm-trade.blink{border-color:var(--danger);background:rgba(255,216,209,.8)}
