@@ -251,13 +251,69 @@ h2{margin:0;font:700 20px/1.2 var(--font-display);text-wrap:balance}
 
 .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 
+/* ---------- Cronómetro ---------- */
+.top-actions{display:flex;flex-wrap:wrap;gap:10px}
+.tm-stack{display:flex;flex-direction:column;gap:16px}
+.tm-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center}
+.tm-row .row-label{min-width:0}
+.tm-row .row-label strong{display:block;font-weight:700}
+.tm-row .row-label small{display:block;color:var(--muted)}
+.tm-stepper{display:flex;align-items:center;gap:6px}
+.tm-val{min-width:3.6ch;text-align:center;font:800 20px var(--font-display);font-variant-numeric:tabular-nums}
+.tm-levels{display:flex;flex-direction:column;gap:12px}
+.tm-level{border:1px solid rgba(255,255,255,.8);border-radius:14px;background:rgba(255,255,255,.45);padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+.tm-level h3{margin:0;display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:2px 10px;font:700 17px/1.2 var(--font-display)}
+.tm-level h3 small{font:500 13px var(--font-body);color:var(--muted)}
+.tm-big{min-height:64px;font-size:19px}
+
+.tm-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 12px}
+.tm-who{font:700 17px var(--font-display)}
+.tm-clock{font:800 clamp(80px,27vw,136px)/1 var(--font-display);font-variant-numeric:tabular-nums;text-align:center;letter-spacing:-.02em}
+.tm-bar{height:14px;border-radius:7px;background:rgba(18,38,43,.16);overflow:hidden}
+.tm-bar.small{height:10px;border-radius:5px}
+.tm-fill{display:block;height:100%;width:100%;border-radius:inherit;background:var(--accent)}
+.tm-fill.trade{background:#2B7FA6}
+.tm-msg{margin:-6px 0 0;min-height:1.5em;text-align:center;font:700 18px var(--font-display);color:var(--muted)}
+#timer.is-warn{background:rgba(255,239,200,.7)}
+#timer.is-danger,#timer.is-over{background:rgba(255,216,209,.78)}
+#timer.is-warn .tm-clock{color:#8A5A0B}
+#timer.is-warn .tm-fill{background:#D58A1E}
+#timer.is-danger .tm-clock,#timer.is-over .tm-clock,#timer.is-over .tm-msg{color:var(--danger)}
+#timer.is-danger .tm-fill{background:var(--danger)}
+
+.tm-trade{border:1px solid rgba(255,255,255,.8);border-radius:14px;background:rgba(255,255,255,.5);padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+.tm-trade.on{border-color:#2B7FA6;background:rgba(205,232,243,.7)}
+.tm-trade.low .tm-tclock{color:var(--danger)}
+.tm-trade-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.tm-trade-head strong{font-weight:700}
+.tm-tclock{font:800 36px/1 var(--font-display);font-variant-numeric:tabular-nums}
+.tm-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tm-actions .wide{grid-column:1 / -1}
+@media (prefers-reduced-motion:no-preference){
+  #timer.is-over .tm-clock{animation:tmblink 1s ease-in-out infinite}
+  @keyframes tmblink{50%{opacity:.4}}
+}
+
+
+.top{position:relative;padding-right:64px}
+.clock-btn{position:absolute;top:0;right:0;min-width:48px;height:48px;padding:0 12px;border-radius:24px;display:flex;align-items:center;justify-content:center;gap:6px;border:1px solid rgba(255,255,255,.7);background:rgba(255,255,255,.55);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);color:#12262B;font-weight:700;box-shadow:0 4px 14px rgba(15,25,35,.25)}
+.clock-btn.on{background:linear-gradient(#F7A44A,#E0662B);color:#fff;border-color:#B84A1C}
+.clock-btn.on{flex-direction:column;gap:0;height:62px;width:58px;min-width:58px;padding:6px 4px;border-radius:22px}
+.clock-time{font-variant-numeric:tabular-nums;font-size:13px;line-height:1.1}
+.clock-btn[hidden]{display:none}
 </style>
 </head>
 <body>
 <main class="wrap">
   <header class="top">
     <h1>Catan Points</h1>
-    <button id="newGameBtn" class="btn primary" type="button">Nueva partida</button>
+    <button id="timerBtn" class="clock-btn" type="button" aria-label="Cronómetro" title="Cronómetro">
+      <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9.5 2.5h5M12 2.5V5"/></svg>
+      <span id="timerBtnTime" class="clock-time" hidden></span>
+    </button>
+    <div id="topActions" class="top-actions">
+      <button id="newGameBtn" class="btn primary" type="button">Nueva partida</button>
+    </div>
   </header>
   <p id="status" class="status" role="status" aria-live="polite"></p>
 
@@ -302,6 +358,52 @@ h2{margin:0;font:700 20px/1.2 var(--font-display);text-wrap:balance}
   </div>
 
   <section id="wiz" class="panel" hidden></section>
+
+  <section id="timer" class="panel" aria-labelledby="tmH" hidden>
+    <div id="tmSetup" class="tm-stack">
+      <h2 id="tmH">Cronómetro</h2>
+      <p class="hint">Cada turno tiene su cuenta regresiva y, dentro del turno, un tiempo aparte para intercambiar. A medida que avanzan las rondas los turnos se acortan por niveles.</p>
+      <div id="tmPlayers"></div>
+      <div id="tmLevels" class="tm-levels"></div>
+      <div class="tm-row">
+        <div class="row-label"><strong>Sonido y vibración</strong><small>Avisos a los 30 y 10 segundos, cuenta final y fin del turno</small></div>
+        <button id="tmSound" class="btn" type="button" aria-pressed="true">Activado</button>
+      </div>
+      <div class="actions">
+        <button id="tmTest" class="btn" type="button">Probar sonido</button>
+        <button id="tmReset" class="btn" type="button">Restablecer valores</button>
+      </div>
+      <div class="actions">
+        <button id="tmBack" class="btn" type="button">Volver</button>
+        <button id="tmStart" class="btn primary tm-big" type="button">Empezar partida</button>
+      </div>
+    </div>
+
+    <div id="tmRun" class="tm-stack" hidden>
+      <div class="tm-head">
+        <span id="tmLevel" class="tag gold"></span>
+        <span id="tmWho" class="tm-who"></span>
+      </div>
+      <div id="tmClock" class="tm-clock" role="timer" aria-label="Tiempo restante del turno">0:00</div>
+      <div class="tm-bar" aria-hidden="true"><span id="tmFill" class="tm-fill"></span></div>
+      <p id="tmMsg" class="tm-msg"></p>
+      <div id="tmTrade" class="tm-trade">
+        <div class="tm-trade-head"><strong id="tmTLabel">Tiempo de intercambio</strong><span id="tmTClock" class="tm-tclock">0:00</span></div>
+        <div class="tm-bar small" aria-hidden="true"><span id="tmTFill" class="tm-fill trade"></span></div>
+        <button id="tmTBtn" class="btn" type="button">Empezar intercambio</button>
+      </div>
+      <div class="tm-actions">
+        <button id="tmNextBtn" class="btn primary tm-big wide" type="button">Siguiente turno</button>
+        <button id="tmPause" class="btn" type="button">Pausar</button>
+        <button id="tmPrev" class="btn" type="button">Turno anterior</button>
+        <button id="tmView" class="btn" type="button">Ver tabla</button>
+        <button id="tmStop" class="btn" type="button">Terminar</button>
+      </div>
+      <button id="tmAudio" class="btn" type="button" hidden>Tocá acá para activar el sonido</button>
+      <p id="tmNext" class="hint"></p>
+      <div id="tmSR" class="sr-only" aria-live="polite"></div>
+    </div>
+  </section>
 </main>
 
 <div id="modal" class="modal" hidden>
@@ -551,7 +653,9 @@ const FIREBASE_CONFIG = {
     view=v;
     $('home').hidden=v!=='home';
     $('wiz').hidden=v!=='new';
-    $('newGameBtn').hidden=v!=='home';
+    $('timer').hidden=v!=='timer';
+    $('topActions').hidden=v!=='home';
+    $('timerBtn').hidden=v==='timer';
     window.scrollTo(0,0);
   }
 
@@ -869,6 +973,413 @@ const FIREBASE_CONFIG = {
 
   $('newGameBtn').addEventListener('click',openWizard);
 
+  /* ---------- Cronómetro de turnos ----------
+     Cada turno tiene su cuenta regresiva y, dentro del turno, un tiempo aparte para intercambiar.
+     Los turnos se acortan por niveles según la ronda. Todo se guarda solo en este celular. */
+  var TM_CFG_KEY='catan-timer-config-v1',TM_RUN_KEY='catan-timer-run-v1';
+  var TM_DEFAULT={players:4,sound:true,levels:[
+    {name:'Arranque',from:1,turn:150,trade:60},
+    {name:'Desarrollo',from:4,turn:120,trade:45},
+    {name:'Recta final',from:9,turn:90,trade:30}
+  ]};
+  var tm={cfg:null,run:null,timer:0,last:null,tlast:null,audio:null,wake:null,upd:[]};
+
+  function clone(o){return JSON.parse(JSON.stringify(o))}
+  function mmss(s){s=Math.max(0,Math.round(s));var m=Math.floor(s/60),r=s%60;return m+':'+(r<10?'0':'')+r}
+  function levelAt(levels,round){var i=0;levels.forEach(function(l,k){if(round>=l.from)i=k});return i}
+
+  function normCfg(d){
+    var c=clone(TM_DEFAULT);
+    if(!d||typeof d!=='object')return c;
+    c.players=clamp(Math.round(+d.players)||c.players,3,6);
+    c.sound=d.sound!==false;
+    if(Array.isArray(d.levels)&&d.levels.length===3){
+      d.levels.forEach(function(l,i){
+        if(!l||typeof l!=='object')return;
+        c.levels[i].turn=clamp(Math.round((+l.turn||c.levels[i].turn)/15)*15,30,600);
+        c.levels[i].trade=clamp(Math.round((+l.trade||c.levels[i].trade)/5)*5,10,180);
+        if(i>0)c.levels[i].from=clamp(Math.round(+l.from)||c.levels[i].from,2,30);
+      });
+      c.levels.forEach(function(l){l.trade=Math.min(l.trade,l.turn)});
+      c.levels[0].from=1;
+      if(c.levels[1].from<2)c.levels[1].from=2;
+      if(c.levels[2].from<=c.levels[1].from)c.levels[2].from=Math.min(30,c.levels[1].from+1);
+    }
+    return c;
+  }
+  function loadCfg(){
+    var d=null;
+    try{d=JSON.parse(localStorage.getItem(TM_CFG_KEY))}catch(e){}
+    tm.cfg=normCfg(d);
+  }
+  function saveCfg(){try{localStorage.setItem(TM_CFG_KEY,JSON.stringify(tm.cfg))}catch(e){}}
+
+  /* ---- Sonido: se genera con Web Audio, sin archivos ---- */
+  var AudioCtx=window.AudioContext||window.webkitAudioContext;
+  function audio(){
+    if(!AudioCtx)return null;
+    try{
+      if(!tm.audio){
+        tm.audio=new AudioCtx();
+        try{if(navigator.audioSession)navigator.audioSession.type='playback'}catch(e){}
+      }
+      if(tm.audio.state==='suspended')tm.audio.resume();
+    }catch(e){return null}
+    return tm.audio;
+  }
+  function tone(freq,at,dur,type,vol){
+    var ctx=tm.audio;
+    if(!ctx)return;
+    var t=ctx.currentTime+at,o=ctx.createOscillator(),g=ctx.createGain();
+    o.type=type||'sine';
+    o.frequency.value=freq;
+    g.gain.setValueAtTime(0.0001,t);
+    g.gain.exponentialRampToValueAtTime(vol||.25,t+0.015);
+    g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+    o.connect(g);
+    g.connect(ctx.destination);
+    o.start(t);
+    o.stop(t+dur+0.03);
+  }
+  var SOUNDS={
+    start:function(){tone(660,0,.14,'sine',.3);tone(880,.15,.2,'sine',.3)},
+    level:function(){tone(523,0,.15,'triangle',.32);tone(659,.16,.15,'triangle',.32);tone(784,.32,.15,'triangle',.32);tone(1046,.48,.35,'triangle',.32)},
+    warn30:function(){tone(880,0,.2,'triangle',.32)},
+    warn10:function(){tone(988,0,.14,'triangle',.34);tone(988,.22,.14,'triangle',.34)},
+    tick:function(){tone(1320,0,.07,'square',.1)},
+    end:function(){tone(440,0,.28,'sawtooth',.3);tone(349,.3,.28,'sawtooth',.3);tone(262,.6,.6,'sawtooth',.32)},
+    tradeStart:function(){tone(587,0,.1,'sine',.28);tone(784,.11,.16,'sine',.28)},
+    tradeWarn:function(){tone(1175,0,.14,'sine',.3)},
+    tradeEnd:function(){tone(1046,0,.8,'sine',.34);tone(1568,0,.55,'sine',.2);tone(1046,.38,.8,'sine',.3)}
+  };
+  var VIBES={start:[80],level:[80,60,80,60,180],warn30:[120],warn10:[100,80,100],end:[400,150,400],tradeStart:[60],tradeEnd:[250,100,250]};
+  function say(t){var el=$('tmSR');if(el)el.textContent=t}
+  function play(name,text){
+    if(text)say(text);
+    if(!tm.cfg.sound)return;
+    if(audio())SOUNDS[name]();
+    try{if(navigator.vibrate&&VIBES[name])navigator.vibrate(VIBES[name])}catch(e){}
+  }
+
+  /* ---- Pantalla encendida mientras corre ---- */
+  function wake(on){
+    try{
+      if(on){
+        if(!tm.wake&&navigator.wakeLock){
+          navigator.wakeLock.request('screen').then(function(l){
+            tm.wake=l;
+            l.addEventListener('release',function(){tm.wake=null});
+          },function(){});
+        }
+      }else if(tm.wake){
+        var l=tm.wake;
+        tm.wake=null;
+        l.release().catch(function(){});
+      }
+    }catch(e){tm.wake=null}
+  }
+  document.addEventListener('visibilitychange',function(){
+    if(document.visibilityState==='visible'&&tm.run&&!tm.run.paused)wake(true);
+  });
+
+  /* ---- Partida en curso ---- */
+  function cur(){
+    var r=tm.run,round=Math.floor(r.turn/r.n)+1,lv=levelAt(r.levels,round);
+    return {round:round,player:r.turn%r.n+1,lv:lv,level:r.levels[lv]};
+  }
+  function persistRun(){
+    try{
+      if(!tm.run){localStorage.removeItem(TM_RUN_KEY);return}
+      var r=tm.run;
+      localStorage.setItem(TM_RUN_KEY,JSON.stringify({n:r.n,levels:r.levels,turn:r.turn,turnEnd:r.turnEnd,tradeEnd:r.tradeEnd,paused:r.paused,pausedTurn:r.pausedTurn,pausedTrade:r.pausedTrade,savedAt:Date.now()}));
+    }catch(e){}
+  }
+  function restoreRun(){
+    var d=null;
+    try{d=JSON.parse(localStorage.getItem(TM_RUN_KEY))}catch(e){}
+    if(!d||typeof d!=='object')return false;
+    var n=Math.round(+d.n),turn=Math.round(+d.turn);
+    if(!(n>=3&&n<=6)||!(turn>=0&&turn<400)||!Array.isArray(d.levels)||d.levels.length!==3)return false;
+    var ref=d.paused?+d.savedAt:+d.turnEnd;
+    if(!isFinite(ref)||Date.now()-ref>6*3600*1000)return false;
+    var lv=normCfg({players:n,levels:d.levels}).levels;
+    tm.run={n:n,levels:lv,turn:turn,turnEnd:+d.turnEnd||Date.now(),tradeEnd:d.tradeEnd?+d.tradeEnd:null,
+      paused:!!d.paused,pausedTurn:+d.pausedTurn||0,pausedTrade:d.pausedTrade!=null?+d.pausedTrade:null,tradeOver:0,lv:0};
+    tm.run.lv=cur().lv;
+    var now=Date.now();
+    tm.last=Math.ceil((d.paused?tm.run.pausedTurn:tm.run.turnEnd-now)/1000);
+    tm.tlast=tm.run.tradeEnd?Math.ceil((tm.run.tradeEnd-now)/1000):null;
+    return true;
+  }
+
+  function beginTurn(){
+    var r=tm.run,c=cur(),prev=r.lv;
+    r.lv=c.lv;
+    r.turnEnd=Date.now()+c.level.turn*1000;
+    r.tradeEnd=null;
+    r.tradeOver=0;
+    r.paused=false;
+    tm.last=c.level.turn;
+    tm.tlast=null;
+    var up=prev!=null&&c.lv>prev;
+    play(up?'level':'start','Turno del jugador '+c.player+', ronda '+c.round+'. '+(up?'Nivel nuevo: '+c.level.name+'. ':'')+'Tenés '+mmss(c.level.turn)+'.');
+    persistRun();
+    wake(true);
+  }
+
+  function tick(){
+    var r=tm.run;
+    if(!r)return;
+    if(!r.paused){
+      var c=cur(),now=Date.now();
+      var sec=Math.ceil((r.turnEnd-now)/1000),prev=tm.last;
+      if(prev!=null&&sec!==prev){
+        if(prev>0&&sec<=0)play('end','Se acabó el tiempo del turno.');
+        else if(sec>0){
+          if(c.level.turn>45&&prev>30&&sec<=30&&sec>10)play('warn30','Quedan 30 segundos.');
+          else if(prev>10&&sec<=10&&sec>5)play('warn10','Quedan 10 segundos.');
+          else if(sec<=5&&sec>=1&&sec<prev)play('tick');
+        }
+      }
+      tm.last=sec;
+      if(r.tradeEnd){
+        var ts=Math.ceil((r.tradeEnd-now)/1000),tp=tm.tlast;
+        if(tp!=null&&ts!==tp){
+          if(tp>0&&ts<=0){
+            play('tradeEnd','Terminó el tiempo de intercambio.');
+            r.tradeEnd=null;
+            r.tradeOver=now;
+            persistRun();
+          }else if(ts>0){
+            if(c.level.trade>20&&tp>10&&ts<=10&&ts>3)play('tradeWarn','Quedan 10 segundos de intercambio.');
+            else if(ts<=3&&ts>=1&&ts<tp)play('tick');
+          }
+        }
+        tm.tlast=ts;
+      }
+    }
+    render();
+  }
+
+  function render(){
+    var r=tm.run;
+    if(!r)return;
+    var c=cur(),now=Date.now();
+    var leftMs=r.paused?r.pausedTurn:r.turnEnd-now;
+    var over=leftMs<=0,sec=Math.ceil(leftMs/1000),total=c.level.turn;
+    var warnAt=total>45?30:Math.floor(total/3);
+    var state=over?'over':(sec<=10?'danger':(sec<=warnAt?'warn':'ok'));
+    var panel=$('timer');
+    panel.classList.toggle('is-warn',state==='warn');
+    panel.classList.toggle('is-danger',state==='danger');
+    panel.classList.toggle('is-over',state==='over');
+    $('tmClock').textContent=over?'0:00':mmss(sec);
+    $('tmFill').style.width=(over?0:clamp(leftMs/(total*1000)*100,0,100))+'%';
+    $('tmLevel').textContent='Nivel '+(c.lv+1)+' · '+c.level.name;
+    $('tmWho').textContent='Ronda '+c.round+' · Jugador '+c.player+' de '+r.n;
+    var next=r.levels[c.lv+1];
+    $('tmNext').textContent=next?'Próximo nivel: '+next.name+', desde la ronda '+next.from+' ('+mmss(next.turn)+' por turno).':'Último nivel: los turnos ya no se acortan más.';
+    $('tmMsg').textContent=r.paused?'En pausa':(over?'Tiempo agotado · +'+mmss(Math.floor(-leftMs/1000)):'');
+
+    var tl=r.tradeEnd?(r.paused?r.pausedTrade:r.tradeEnd-now):null,tOn=tl!=null,tTotal=c.level.trade;
+    var justEnded=!tOn&&r.tradeOver&&now-r.tradeOver<4000;
+    $('tmTrade').classList.toggle('on',tOn);
+    $('tmTrade').classList.toggle('low',tOn&&tl<=10000);
+    $('tmTClock').textContent=tOn?mmss(Math.ceil(Math.max(tl,0)/1000)):mmss(tTotal);
+    $('tmTFill').style.width=(tOn?clamp(tl/(tTotal*1000)*100,0,100):100)+'%';
+    $('tmTLabel').textContent=tOn?'Intercambio en curso':(justEnded?'Intercambio terminado':'Tiempo de intercambio');
+    $('tmTBtn').textContent=tOn?'Cortar intercambio':'Empezar intercambio';
+    $('tmTBtn').disabled=r.paused;
+    $('tmPause').textContent=r.paused?'Seguir':'Pausar';
+    $('tmPrev').disabled=r.turn===0;
+    $('timerBtnTime').textContent=over?'0:00':mmss(sec);$('timerBtnTime').hidden=false;$('timerBtn').classList.add('on');
+    $('tmAudio').hidden=!(tm.cfg.sound&&(!tm.audio||tm.audio.state!=='running'));
+  }
+
+  function showRun(){
+    $('tmSetup').hidden=true;
+    $('tmRun').hidden=false;
+    if(!tm.timer)tm.timer=setInterval(tick,200);
+    render();
+  }
+  function showSetup(){
+    $('tmRun').hidden=true;
+    $('tmSetup').hidden=false;
+    refreshSetup();
+  }
+  function stopRun(){
+    clearInterval(tm.timer);
+    tm.timer=0;
+    tm.run=null;
+    tm.last=null;
+    tm.tlast=null;
+    persistRun();
+    wake(false);
+    $('timerBtnTime').hidden=true;$('timerBtn').classList.remove('on');
+    $('timer').classList.remove('is-warn','is-danger','is-over');
+  }
+  function startRun(){
+    audio();
+    tm.run={n:tm.cfg.players,levels:clone(tm.cfg.levels),turn:0,turnEnd:0,tradeEnd:null,paused:false,pausedTurn:0,pausedTrade:null,tradeOver:0,lv:null};
+    beginTurn();
+    showRun();
+  }
+  function togglePause(){
+    var r=tm.run,now=Date.now();
+    if(r.paused){
+      r.turnEnd=now+r.pausedTurn;
+      r.tradeEnd=r.pausedTrade!=null?now+r.pausedTrade:null;
+      r.paused=false;
+      tm.last=Math.ceil(r.pausedTurn/1000);
+      tm.tlast=r.pausedTrade!=null?Math.ceil(r.pausedTrade/1000):null;
+      wake(true);
+      say('Cronómetro en marcha.');
+    }else{
+      r.pausedTurn=r.turnEnd-now;
+      r.pausedTrade=r.tradeEnd?r.tradeEnd-now:null;
+      r.paused=true;
+      wake(false);
+      say('Cronómetro en pausa.');
+    }
+    persistRun();
+    render();
+  }
+  function toggleTrade(){
+    var r=tm.run,c=cur();
+    if(r.paused)return;
+    if(r.tradeEnd){
+      r.tradeEnd=null;
+      tm.tlast=null;
+      say('Intercambio cortado.');
+    }else{
+      r.tradeEnd=Date.now()+c.level.trade*1000;
+      r.tradeOver=0;
+      tm.tlast=c.level.trade;
+      play('tradeStart','Intercambio: '+mmss(c.level.trade)+'.');
+    }
+    persistRun();
+    render();
+  }
+  function gotoTurn(delta){
+    var r=tm.run;
+    if(r.turn+delta<0)return;
+    r.turn+=delta;
+    beginTurn();
+    render();
+  }
+
+  /* ---- Configuración ---- */
+  function stepper(get,set,min,max,step,fmtFn,label){
+    var out=h('span',{class:'tm-val'});
+    var minus=h('button',{class:'step',type:'button','aria-label':'Bajar '+label,text:'−',onclick:function(){set(get()-step);refreshSetup()}});
+    var plus=h('button',{class:'step',type:'button','aria-label':'Subir '+label,text:'+',onclick:function(){set(get()+step);refreshSetup()}});
+    tm.upd.push(function(){
+      var v=get();
+      out.textContent=fmtFn(v);
+      minus.disabled=v<=min();
+      plus.disabled=v>=max();
+    });
+    return h('span',{class:'tm-stepper'},minus,out,plus);
+  }
+  function refreshSetup(){
+    tm.upd.forEach(function(f){f()});
+    var s=$('tmSound');
+    s.setAttribute('aria-pressed',String(tm.cfg.sound));
+    s.textContent=tm.cfg.sound?'Activado':'Desactivado';
+    saveCfg();
+  }
+  function row(title,hint,control){
+    return h('div',{class:'tm-row'},h('div',{class:'row-label'},h('strong',{text:title}),hint?h('small',{text:hint}):null),control);
+  }
+  function buildSetup(){
+    tm.upd=[];
+    var L=tm.cfg.levels;
+    var pl=$('tmPlayers');
+    pl.replaceChildren(row('Jugadores','Para contar las rondas',stepper(
+      function(){return tm.cfg.players},
+      function(v){tm.cfg.players=clamp(v,3,6)},
+      function(){return 3},function(){return 6},1,String,'la cantidad de jugadores')));
+    var box=$('tmLevels');
+    box.replaceChildren.apply(box,L.map(function(lv,i){
+      var range=h('small');
+      tm.upd.push(function(){
+        var a=L[i].from,b=L[i+1]?L[i+1].from-1:null;
+        range.textContent=b==null?'desde la ronda '+a:(a===b?'ronda '+a:'rondas '+a+' a '+b);
+      });
+      var rows=[];
+      if(i>0){
+        rows.push(row('Empieza en la ronda',null,stepper(
+          function(){return L[i].from},
+          function(v){
+            L[i].from=clamp(v,i===1?2:L[1].from+1,i===1?29:30);
+            if(i===1&&L[2].from<=L[1].from)L[2].from=L[1].from+1;
+          },
+          function(){return i===1?2:L[1].from+1},
+          function(){return i===1?29:30},1,String,'la ronda de inicio del nivel '+(i+1))));
+      }
+      rows.push(row('Turno',null,stepper(
+        function(){return L[i].turn},
+        function(v){L[i].turn=clamp(v,30,600);if(L[i].trade>L[i].turn)L[i].trade=L[i].turn},
+        function(){return 30},function(){return 600},15,mmss,'el tiempo de turno del nivel '+(i+1))));
+      rows.push(row('Intercambio','Dentro del turno',stepper(
+        function(){return L[i].trade},
+        function(v){L[i].trade=clamp(v,10,Math.min(180,L[i].turn))},
+        function(){return 10},function(){return Math.min(180,L[i].turn)},5,mmss,'el tiempo de intercambio del nivel '+(i+1))));
+      return h('div',{class:'tm-level'},h('h3',{},'Nivel '+(i+1)+' · '+lv.name,range),rows);
+    }));
+    refreshSetup();
+  }
+
+  function initTimer(){
+    loadCfg();
+    buildSetup();
+    $('timerBtn').addEventListener('click',function(){
+      if(tm.run)showRun();else showSetup();
+      show('timer');
+    });
+    $('tmBack').addEventListener('click',function(){show('home')});
+    $('tmStart').addEventListener('click',startRun);
+    $('tmSound').addEventListener('click',function(){
+      tm.cfg.sound=!tm.cfg.sound;
+      if(tm.cfg.sound)audio();
+      refreshSetup();
+    });
+    $('tmTest').addEventListener('click',function(){
+      if(!audio()){say('Este navegador no permite sonido.');return}
+      SOUNDS.start();
+      setTimeout(SOUNDS.warn10,800);
+      setTimeout(SOUNDS.end,1700);
+      setTimeout(SOUNDS.tradeEnd,3100);
+      try{if(navigator.vibrate)navigator.vibrate(VIBES.end)}catch(e){}
+    });
+    $('tmReset').addEventListener('click',function(){
+      var snd=tm.cfg.sound;
+      tm.cfg=normCfg(null);
+      tm.cfg.sound=snd;
+      buildSetup();
+    });
+    $('tmNextBtn').addEventListener('click',function(){gotoTurn(1)});
+    $('tmPrev').addEventListener('click',function(){gotoTurn(-1)});
+    $('tmPause').addEventListener('click',togglePause);
+    $('tmTBtn').addEventListener('click',toggleTrade);
+    $('tmView').addEventListener('click',function(){show('home')});
+    $('tmStop').addEventListener('click',function(){
+      askConfirm('¿Terminar el cronómetro?','Se detiene y se borra el avance de esta partida. Los puntos de la tabla no se tocan.','Terminar',function(){
+        stopRun();
+        show('home');
+      });
+    });
+    $('tmAudio').addEventListener('click',function(){
+      if(audio()){SOUNDS.tick();render()}
+    });
+    $('timer').addEventListener('click',function(){if(tm.cfg.sound&&tm.run)audio()});
+    if(restoreRun()){
+      showRun();
+      show('timer');
+      persistRun();
+    }
+  }
+
   /* ---------- Arranque ---------- */
   (function renderScheme(){
     var box=$('scheme');
@@ -887,6 +1398,7 @@ const FIREBASE_CONFIG = {
   })();
   renderAll();
   setStatus(store?'ready':'local');
+  initTimer();
 
   if(!store){
     try{
