@@ -265,6 +265,7 @@ h2{margin:0;font:700 20px/1.2 var(--font-display);text-wrap:balance}
 .tm-level h3{margin:0;display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:2px 10px;font:700 17px/1.2 var(--font-display)}
 .tm-level h3 small{font:500 13px var(--font-body);color:var(--muted)}
 .tm-big{min-height:64px;font-size:19px}
+.tm-pause{min-height:88px;font-size:26px;letter-spacing:.01em;border-radius:20px}
 
 .tm-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 12px}
 .tm-who{font:700 17px var(--font-display)}
@@ -394,20 +395,20 @@ h2{margin:0;font:700 20px/1.2 var(--font-display);text-wrap:balance}
       <div id="tmClock" class="tm-clock" role="timer" aria-label="Tiempo restante del turno">0:00</div>
       <div class="tm-bar" aria-hidden="true"><span id="tmFill" class="tm-fill"></span></div>
       <p id="tmMsg" class="tm-msg"></p>
-      <div id="tmTrade" class="tm-trade">
+      <div id="tmTrade" class="tm-trade" hidden>
         <div class="tm-trade-head"><strong id="tmTLabel">Tiempo de intercambio</strong><span id="tmTClock" class="tm-tclock">0:00</span></div>
         <div class="tm-bar small" aria-hidden="true"><span id="tmTFill" class="tm-fill trade"></span></div>
         <button id="tmTBtn" class="btn" type="button">Empezar intercambio</button>
       </div>
-      <div class="tm-actions">
-        <button id="tmNextBtn" class="btn primary tm-big wide" type="button">Siguiente turno</button>
-        <button id="tmPause" class="btn" type="button">Pausar</button>
-        <button id="tmPrev" class="btn" type="button">Turno anterior</button>
-        <button id="tmView" class="btn" type="button">Ver tabla</button>
-        <button id="tmStop" class="btn" type="button">Terminar</button>
-      </div>
       <button id="tmAudio" class="btn" type="button" hidden>Tocá acá para activar el sonido</button>
       <p id="tmNext" class="hint"></p>
+      <div class="tm-actions">
+        <button id="tmPause" class="btn tm-pause wide" type="button">⏸ Pausar</button>
+        <button id="tmPrev" class="btn" type="button">Turno anterior</button>
+        <button id="tmView" class="btn" type="button">Ver tabla</button>
+        <button id="tmStop" class="btn wide" type="button">Terminar</button>
+        <button id="tmNextBtn" class="btn primary tm-big wide" type="button">Siguiente turno</button>
+      </div>
       <div id="tmSR" class="sr-only" aria-live="polite"></div>
     </div>
   </section>
@@ -1199,7 +1200,7 @@ const FIREBASE_CONFIG = {
     $('tmTLabel').textContent=tOn?'Intercambio en curso':(justEnded?'Intercambio terminado':'Tiempo de intercambio');
     $('tmTBtn').textContent=tOn?'Cortar intercambio':'Empezar intercambio';
     $('tmTBtn').disabled=r.paused;
-    $('tmPause').textContent=r.paused?'Seguir':'Pausar';
+    $('tmPause').textContent=r.paused?'▶ Seguir':'⏸ Pausar';$('tmPause').classList.toggle('primary',r.paused);
     $('tmPrev').disabled=r.turn===0;
     $('timerBtnTime').textContent=over?'0:00':mmss(sec);$('timerBtnTime').hidden=false;$('timerBtn').classList.add('on');
     $('tmAudio').hidden=!(tm.cfg.sound&&(!tm.audio||tm.audio.state!=='running'));
@@ -1330,10 +1331,6 @@ const FIREBASE_CONFIG = {
         function(){return L[i].turn},
         function(v){L[i].turn=clamp(v,30,600);if(L[i].trade>L[i].turn)L[i].trade=L[i].turn},
         function(){return 30},function(){return 600},15,mmss,'el tiempo de turno del nivel '+(i+1))));
-      rows.push(row('Intercambio','Dentro del turno',stepper(
-        function(){return L[i].trade},
-        function(v){L[i].trade=clamp(v,10,Math.min(180,L[i].turn))},
-        function(){return 10},function(){return Math.min(180,L[i].turn)},5,mmss,'el tiempo de intercambio del nivel '+(i+1))));
       return h('div',{class:'tm-level'},h('h3',{},'Nivel '+(i+1)+' · '+lv.name,range),rows);
     }));
     refreshSetup();
